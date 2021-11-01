@@ -11,6 +11,7 @@ CM = [0, 262, 294, 330, 350, 393, 441, 495]
 
 
 def setup():
+    print('Starting Up!')
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
     GPIO.setup(TRIG, GPIO.OUT)
@@ -22,6 +23,7 @@ def setup():
     buzz = GPIO.PWM(BUZZ,440)
     buzz.start(10) 
     GPIO.add_event_detect(BUTT, GPIO.BOTH, callback=detect, bouncetime=200)
+    time.sleep(5)
 
 
 def detect(chn):
@@ -48,33 +50,46 @@ def distance():
     return during * 340 / 2 * 100
 
 
+def motion():
+    print("I SAW SOMETHING!!!")
+    dis = distance()
+    buzz.start(10)
+    while (dis < 1200):
+        dis = distance()
+        print(round(dis, 2), 'cm')
+        if (dis < 100):
+            buzz.ChangeFrequency(CM[6])
+        elif (dis < 200):
+            buzz.ChangeFrequency(CM[4])
+        elif (dis < 300):
+            buzz.ChangeFrequency(CM[2])
+        else:
+            buzz.ChangeFrequency(200)
+        time.sleep(0.3)
+        
+        
+def noMotion():
+    print('No motion')
+    buzz.stop()
+    
+    
 def program(): 
     while True:
         if GPIO.input(INFRA):
-            print('I SAW SOMETHING')
-            dis = distance()
-            print(dis, 'cm')
-            if (dis < 100):
-                buzz.ChangeFrequency(CM[6])
-            elif (dis < 200):
-                buzz.ChangeFrequency(CM[4])
-            elif (dis < 300):
-                buzz.ChangeFrequency(CM[2])
-            else:
-                buzz.ChangeFrequency(200)
+            motion()
         else:
-            print('No motion')
-            buzz.ChangeFrequency(10)
+            noMotion()
         time.sleep(0.3)    
 
+
 def destroy():
+    buzz.stop()
     GPIO.cleanup()
 
 
-if __name__ == "__main__": 
-	setup()
-	print('Starting Up!')
-	try:
-		program()	
-	except KeyboardInterrupt:
-		destroy()	
+if __name__ == "__main__":
+    setup()
+    try:
+        program()
+    except KeyboardInterrupt:
+        destroy()
