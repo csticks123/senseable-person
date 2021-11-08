@@ -1,13 +1,15 @@
 import RPi.GPIO as GPIO
 import time
 
+
 # GPIO Pin locations of each sensor
 INFRA = 22
 TRIG = 27
 ECHO = 18 
 BUZZ = 17
 BUTT = 5
-theTruth = True
+# Set Button initial value to True
+pushed = True
 # Array of frequencies for buzzer
 CM = [0, 262, 294, 330, 350, 393, 441, 495]
 
@@ -24,19 +26,21 @@ def setup():
     GPIO.setup(BUTT, GPIO.IN, pull_up_down=GPIO.PUD_UP)    # Set Button's mode as input, and pull up to high level(3.3V)
     global buzz                     # Define buzzer as a global variable
     buzz = GPIO.PWM(BUZZ,440)
-    buzz.start(1)                  # Start buzz at 10Hz frequency upon startup
     GPIO.add_event_detect(BUTT, GPIO.RISING, callback=detect, bouncetime=200)
-    time.sleep(5)                   # Sleep for 5 seconds so that sensors can start up properly
+    for i in range(5):
+        buzz.start(10)       # Start buzz at 10Hz frequency upon startup
+        time.sleep(0.33)
+        buzz.stop()
+        time.sleep(0.66)     # Sleep for 5 seconds so that sensors can start up properly
 
 
+# Check if button has been pressed
 def detect(channel):
-    global theTruth
-    if not theTruth:
-        print("BUTTON PUSHED")
-        theTruth = True
-    else:
-        print("BUTTON PUSHED")
-        theTruth = False
+    global pushed         # Make the button push a global variable
+    print('BUTTON PUSHED')
+    # Switch False to True or True to False
+    pushed = not pushed
+
 
 # Check distance from ultrasonic sensor
 def distance():
@@ -49,10 +53,10 @@ def distance():
 
 
     while GPIO.input(ECHO) == 0:
-            a = 0
+        a = 0
     time1 = time.time()
     while GPIO.input(ECHO) == 1:
-            a = 1
+        a = 1
     time2 = time.time()
 
     during = time2 - time1
@@ -60,11 +64,11 @@ def distance():
 
 
 # Infrared input saw something
-def motion(x):
-    print("I SAW SOMETHING!!!")
+def motion():
+    print('I SAW SOMETHING!!!')
     dis = distance()              # Take initial distance from ultrasonic input
     buzz.start(10)                # Turn on buzzer at 10Hz
-    while (theTruth and dis < 1200):           # If distance > 1200 cm, turn off sensors, person gone
+    while (pushed and dis < 1200):           # If distance > 1200 cm, turn off sensors, person gone
         dis = distance()          # Calculate distance at each instance of while loop
         print(round(dis, 2), 'cm')  # Display distance rounded to 2 decimal places
         if (dis < 100):           # If 0 < distance < 100, play highest frequency
@@ -75,37 +79,35 @@ def motion(x):
             buzz.ChangeFrequency(CM[2])
         else:                     # If 300 < distance < 1200, play lowest frequency
             buzz.ChangeFrequency(200)
-        time.sleep(0.3)           # Calculate change 3 times per second
+        time.sleep(0.33)           # Calculate change 3 times per second
+    if not pushed:
+        buzz.stop()               # Turn off buzzer if button set to off
 
 
 # No motion detected, turn off buzzer
 def noMotion():
     print('No motion')
-    buzz.stop()                   # Turn off buzzer   
+    buzz.stop()     # Turn off buzzer   
     
-    
+
+# If infrared sensor detects person, start buzzing as defined in motion function
+# If infrared sensor doesn't detect person and motion loop isn't running, turn off
 def program():
-    x = GPIO.input(BUTT)
     while True:
-        while theTruth:
-            if GPIO.input(INFRA):
-                motion(x)              # If infrared sensor detects person, start buzzing as defined in motion function
-            else:
-                noMotion()            # If infrared sensor doesn't detect person and motion loop isn't running, turn off
-            time.sleep(0.3)           # Check this 3 times per second   
+        while pushed:
+            motion() if GPIO.input(INFRA) else noMotion()
+            time.sleep(0.33)   # Check this 3 times per second   
 
 
 # KeyboardInterrupt, turn off buzzer and clean up
 def destroy():
-    buzz.stop()                   # Turn off Buzzer
-    GPIO.cleanup()                # Release resource
+    buzz.stop()       # Turn off Buzzer
+    GPIO.cleanup()    # Release resource
 
 
 # MAIN
 # Calls all functions in necessary order
-if __name__ == "__main__":
+if __name__ == '__main__':
     setup()
-    try:
-        program()
-    except KeyboardInterrupt:
-        destroy()
+    try: program()
+    except KeyboardInterrupt: destroy()
