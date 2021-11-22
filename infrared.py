@@ -28,7 +28,7 @@ def setup():
     buzz = GPIO.PWM(BUZZ,440)
     GPIO.add_event_detect(BUTT, GPIO.RISING, callback=detect, bouncetime=200)
     for i in range(5):
-        buzz.start(10)       # Start buzz at 10Hz frequency upon startup
+        buzz.start(100)      # Start buzz to play startup tone
         time.sleep(0.33)
         buzz.stop()
         time.sleep(0.66)     # Sleep for 5 seconds so that sensors can start up properly
@@ -38,8 +38,7 @@ def setup():
 def detect(channel):
     global pushed         # Make the button push a global variable
     print('BUTTON PUSHED')
-    # Switch False to True or True to False
-    pushed = not pushed
+    pushed = not pushed   # Switch false to true or true to false
 
 
 # Check distance from ultrasonic sensor
@@ -67,7 +66,7 @@ def distance():
 def motion():
     print('I SAW SOMETHING!!!')
     dis = distance()              # Take initial distance from ultrasonic input
-    buzz.start(10)                # Turn on buzzer at 10Hz
+    buzz.start(10)                 # Turn on buzzer
     while (pushed and dis < 1200):           # If distance > 1200 cm, turn off sensors, person gone
         dis = distance()          # Calculate distance at each instance of while loop
         print(round(dis, 2), 'cm')  # Display distance rounded to 2 decimal places
@@ -79,7 +78,7 @@ def motion():
             buzz.ChangeFrequency(CM[2])
         else:                     # If 300 < distance < 1200, play lowest frequency
             buzz.ChangeFrequency(200)
-        time.sleep(0.33)           # Calculate change 3 times per second
+        time.sleep(0.33)          # Calculate change 3 times per second
     if not pushed:
         buzz.stop()               # Turn off buzzer if button set to off
 
