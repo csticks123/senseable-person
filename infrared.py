@@ -21,10 +21,11 @@ def setup():
     GPIO.setwarnings(False)
     GPIO.setup(TRIG, GPIO.OUT)
     GPIO.setup(ECHO, GPIO.IN)
-    GPIO.setup(INFRA, GPIO.IN)      # Setup infrared sensor is an input
-    GPIO.setup(BUZZ, GPIO.OUT)      # Setup buzzer as output
-    GPIO.setup(BUTT, GPIO.IN, pull_up_down=GPIO.PUD_UP)    # Set Button's mode as input, and pull up to high level(3.3V)
-    global buzz                     # Define buzzer as a global variable
+    GPIO.setup(INFRA, GPIO.IN)  # Setup infrared sensor is an input
+    GPIO.setup(BUZZ, GPIO.OUT)  # Setup buzzer as output
+    # Set Button's mode as input, and pull up to high level(3.3V)
+    GPIO.setup(BUTT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    global buzz                 # Define buzzer as a global variable
     buzz = GPIO.PWM(BUZZ,440)
     GPIO.add_event_detect(BUTT, GPIO.RISING, callback=detect, bouncetime=200)
     for i in range(5):
@@ -59,28 +60,38 @@ def distance():
     time2 = time.time()
 
     during = time2 - time1
-    return during * 340 / 2 * 100
+    # Returns distance in inches
+    return during * 340 / 5.08 * 100
 
 
 # Infrared input saw something
 def motion():
     print('I SAW SOMETHING!!!')
-    dis = distance()              # Take initial distance from ultrasonic input
-    buzz.start(10)                 # Turn on buzzer
-    while (pushed and dis < 1200):           # If distance > 1200 cm, turn off sensors, person gone
-        dis = distance()          # Calculate distance at each instance of while loop
-        print(round(dis, 2), 'cm')  # Display distance rounded to 2 decimal places
-        if (dis < 100):           # If 0 < distance < 100, play highest frequency
+    dis = distance()        # Take initial distance from ultrasonic input
+    buzz.start(10)          # Turn on buzzer
+    # If distance > 10 ft, turn off sensors, person gone
+    while (pushed and dis < 120):
+        dis = distance()    # Calculate distance at each instance of while loop
+        # Display distance in feet and inches (rounded to 2 decimal places)
+        print(int(dis / 12), 'ft,', round(dis % 12, 2), 'in')
+        if (dis < 12):      # If 0 ft < distance < 1 ft, play highest frequency
+            buzz.ChangeFrequency(CM[7])    
+        elif (dis < 24):    # If 1 ft < distance < 2 ft, play next highest frequency
             buzz.ChangeFrequency(CM[6])
-        elif (dis < 200):         # If 100 < distance < 200, play next highest frequency
+        elif (dis < 36):    # If 2 ft < distance < 3 ft, play third highest frequency
+            buzz.ChangeFrequency(CM[5])
+        elif (dis < 48):    # If 3 ft < distance < 4 ft, play fourth highest frequency
             buzz.ChangeFrequency(CM[4])
-        elif (dis < 300):         # If 200 < distance < 300, play third highest frequency
+        elif (dis < 60):    # If 4 ft < distance < 5 ft, play fifth highest frequency
+            buzz.ChangeFrequency(CM[3])
+        elif (dis < 72):    # If 5 ft < distance < 6 ft, play sixth highest frequency
             buzz.ChangeFrequency(CM[2])
-        else:                     # If 300 < distance < 1200, play lowest frequency
+        elif (dis < 84):    # If 6 ft < distance < 7 ft, play sixth highest frequency
+            buzz.ChangeFrequency(CM[1])
+        else:               # If 7 ft < distance < 10 ft, play lowest frequency
             buzz.ChangeFrequency(200)
-        time.sleep(0.33)          # Calculate change 3 times per second
-    if not pushed:
-        buzz.stop()               # Turn off buzzer if button set to off
+        time.sleep(0.33)    # Calculate change 3 times per second
+    if not pushed: buzz.stop()         # Turn off buzzer if button set to off
 
 
 # No motion detected, turn off buzzer
